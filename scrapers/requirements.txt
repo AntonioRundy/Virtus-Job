@@ -1,0 +1,39 @@
+# ─── HTTP & Browser ─────────────────────────────────────
+httpx[http2]==0.28.1
+playwright==1.49.0
+
+# ─── HTML Parsing ────────────────────────────────────────
+beautifulsoup4==4.12.3
+lxml==5.3.0
+
+# ─── AI ─────────────────────────────────────────────────
+anthropic==0.40.0
+openai==1.58.1
+
+# ─── Database ───────────────────────────────────────────
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# ─── Data & Validation ──────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.7.0
+
+# ─── Reliability ────────────────────────────────────────
+tenacity==9.0.0
+
+# ─── Logging & CLI ──────────────────────────────────────
+loguru==0.7.2
+typer==0.15.1
+rich==13.9.4
+
+# ─── Utilities ──────────────────────────────────────────
+python-dotenv==1.0.1
+python-slugify==8.0.4
+dateparser==1.2.0
+
+# ─── Testing ────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+aiosqlite==0.20.0
+respx==0.21.1
