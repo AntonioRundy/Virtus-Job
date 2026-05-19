@@ -1,0 +1,31 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@virtus/types": [
+        "../../packages/types/src"
+      ],
+      "@virtus/types/*": [
+        "../../packages/types/src/*"
+      ],
+      "@virtus/api-client": [
+        "../../packages/api-client/src"
+      ],
+      "@virtus/api-client/*": [
+        "../../packages/api-client/src/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.d.ts",
+    "expo-env.d.ts",
+    "../../packages/**/*.ts",
+    ".expo/types/**/*.ts"
+  ]
+}
