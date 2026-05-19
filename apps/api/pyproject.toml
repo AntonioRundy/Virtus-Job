@@ -1,0 +1,27 @@
+[project]
+name = "virtus-job-api"
+version = "0.1.0"
+description = "Virtus Job — Backend API"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008", "B024"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
