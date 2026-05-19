@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Testing
+coverage/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/*.log
+npm-debug.log*
+
+# Docker volumes (local)
+.docker-volumes/
+
+# Alembic
+apps/api/migrations/versions/*.pyc
+
+# Misc
+.turbo/
+.cache/
+
+# Scraper sessions — cookies do utilizador, nunca commitar
+scrapers/sessions/*.json
+!scrapers/sessions/.gitkeep
+scrapers/scrapers/sessions/*.json
+!scrapers/scrapers/sessions/.gitkeep
+
+# Scraper outputs e capturas temporárias
+scrapers/output/
+scrapers/tests/output/
+
+# Logs
+logs/
+!logs/.gitkeep
+
+# Mobile cache e expo
+apps/mobile/.expo/
+apps/mobile/node_modules/
+.expo/
+
+# Claude Code internal
+.claude/
+
+# Python venv dos scrapers
+scrapers/.venv/

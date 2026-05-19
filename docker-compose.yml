@@ -1,0 +1,126 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: virtus_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - virtus_network
+
+  # ─── Redis ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: virtus_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - virtus_network
+
+  # ─── Backend API ─────────────────────────────────────────
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: virtus_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./apps/api:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - virtus_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level info
+
+  # ─── Frontend ────────────────────────────────────────────
+  web:
+    build:
+      context: .                      # workspace root — gives access to packages/
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: virtus_web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_APP_NAME: Virtus Job
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NODE_ENV: development
+    volumes:
+      - ./apps/web:/workspace/apps/web
+      - ./packages:/workspace/packages
+      - web_node_modules:/workspace/apps/web/node_modules
+      - web_next_cache:/workspace/apps/web/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - virtus_network
+    command: npm run dev
+
+  # ─── Scraper ─────────────────────────────────────────────
+  scraper:
+    build:
+      context: .
+      dockerfile: scrapers/Dockerfile
+    container_name: virtus_scraper
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PYTHONPATH: /app:/app/api
+    volumes:
+      - ./scrapers:/app/scrapers
+      - ./apps/api:/app/api
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - virtus_network
+    profiles:
+      - scraper                  # opt-in: docker compose --profile scraper up scraper
+    command: python -m scrapers.cli run --source all
+
+volumes:
+  postgres_data:
+  redis_data:
+  web_node_modules:
+  web_next_cache:
+
+networks:
+  virtus_network:
+    driver: bridge

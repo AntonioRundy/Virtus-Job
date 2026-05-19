@@ -1,0 +1,8 @@
+{
+  "name": "virtus-job",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/web"
+  ]
+}
