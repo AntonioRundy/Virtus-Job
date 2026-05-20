@@ -294,7 +294,7 @@ async def process_and_persist(
         jpeg = buf.getvalue()
 
         page_crops = crops_dir / f"page{page_num:03d}"
-        page_crops.mkdir(exist_ok=True)
+        page_crops.mkdir(parents=True, exist_ok=True)
 
         processor = PageProcessor(
             source_url=f"{source_url_base}#p{page_num}",
