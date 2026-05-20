@@ -105,4 +105,5 @@ export interface OpportunityFilters {
   province?: string;
   category?: string;
   search?: string;
+  sort?: "recent" | "deadline";
 }
