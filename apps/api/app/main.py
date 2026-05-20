@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from app.config import settings
-from app.routers import auth, devices, opportunities, users
+from app.routers import admin, auth, devices, opportunities, users
 
 _DEV_SECRET = "virtus-job-dev-secret-key-change-in-production-32chars"
 
@@ -74,6 +74,7 @@ app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(opportunities.router, prefix=settings.API_V1_PREFIX)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(devices.router, prefix=settings.API_V1_PREFIX)
+app.include_router(admin.router, prefix=settings.API_V1_PREFIX)
 
 
 # ─── Health & Root ───────────────────────────────────────
