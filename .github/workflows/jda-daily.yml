@@ -77,6 +77,8 @@ jobs:
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
           JDA_EMAIL:           ${{ secrets.JDA_EMAIL }}
           JDA_PASSWORD:        ${{ secrets.JDA_PASSWORD }}
+          # SECRET_KEY necessário para Pydantic Settings carregar app.models (não usado para auth)
+          SECRET_KEY:          "scraper-ci-placeholder-not-used-for-auth-32chars"
           PYTHONPATH:          ${{ github.workspace }}/apps/api:${{ github.workspace }}
           PYTHONIOENCODING:    utf-8
         run: |
