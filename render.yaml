@@ -18,9 +18,7 @@ services:
     region: frankfurt    # mais próximo de Angola
     healthCheckPath: /health
     autoDeploy: true     # deploy automático a cada push para main
-
-    # Executar migrações antes de aceitar tráfego
-    preDeployCommand: alembic upgrade head
+    # Migrações correm via start.sh (preDeployCommand não suportado no free tier)
 
     envVars:
       # Base de dados — ligada automaticamente ao virtus-db abaixo
