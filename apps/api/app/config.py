@@ -23,7 +23,17 @@ class Settings(BaseSettings):
 
     # ─── Database ───────────────────────────────────────
     DATABASE_URL: str
-    DB_ECHO: bool = False  # set True only for local SQL debugging
+    DB_ECHO: bool = False
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        # Render provides postgres:// — SQLAlchemy async requires postgresql+asyncpg://
+        if v.startswith("postgres://"):
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://") and "+asyncpg" not in v:
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
     # ─── Redis ──────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379/0"

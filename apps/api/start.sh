@@ -1,9 +1,9 @@
 #!/bin/sh
-# Startup script: corre migrações e inicia a API
+# Startup: migrações + API
 set -e
 
-echo "[startup] A correr migrações Alembic..."
+echo "[startup] A correr migrações..."
 alembic upgrade head
 
-echo "[startup] Migrações concluídas. A iniciar API..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+echo "[startup] A iniciar API na porta ${PORT:-8000}..."
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
