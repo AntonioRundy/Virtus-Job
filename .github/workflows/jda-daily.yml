@@ -1,0 +1,113 @@
+name: JDA Daily Pipeline
+
+on:
+  schedule:
+    # 06:30 UTC = 07:30 Luanda (UTC+1), segunda a sábado
+    - cron: '30 6 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Forçar execução mesmo que já tenha corrido hoje'
+        required: false
+        default: 'false'
+        type: boolean
+      dry_run:
+        description: 'Dry run (não guardar na BD)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  jda-pipeline:
+    name: Captura JDA + Visual Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Python ──────────────────────────────────────────────────────────
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            scrapers/requirements.txt
+            apps/api/requirements.txt
+
+      # ── 3. Dependências ────────────────────────────────────────────────────
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scrapers/requirements.txt
+          pip install -r apps/api/requirements.txt
+
+      # ── 4. Playwright ──────────────────────────────────────────────────────
+      - name: Instalar Playwright + Chromium
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      # ── 5. Restaurar sessão JDA (cache entre runs) ─────────────────────────
+      - name: Restaurar sessão JDA
+        id: jda-session
+        uses: actions/cache@v4
+        with:
+          path: scrapers/sessions/jda_session.json
+          key: jda-session-${{ github.run_id }}
+          restore-keys: |
+            jda-session-
+
+      # ── 6. Correr o pipeline ───────────────────────────────────────────────
+      - name: Executar JDA Daily Pipeline
+        env:
+          DATABASE_URL:        ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          JDA_EMAIL:           ${{ secrets.JDA_EMAIL }}
+          JDA_PASSWORD:        ${{ secrets.JDA_PASSWORD }}
+          PYTHONPATH:          ${{ github.workspace }}/apps/api:${{ github.workspace }}
+          PYTHONIOENCODING:    utf-8
+        run: |
+          ARGS=""
+          if [ "${{ inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python -m scrapers.jda_daily $ARGS
+
+      # ── 7. Health check após pipeline ─────────────────────────────────────
+      - name: Health Check
+        if: success()
+        env:
+          DATABASE_URL:      ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONPATH:        ${{ github.workspace }}/apps/api:${{ github.workspace }}
+          PYTHONIOENCODING:  utf-8
+        run: python -m scrapers.health_check
+        continue-on-error: true
+
+      # ── 8. Guardar log como artefacto ──────────────────────────────────────
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jda-logs-${{ github.run_number }}
+          path: |
+            logs/jda_daily_*.log
+            logs/jda_daily_runs.json
+          retention-days: 14
+
+      # ── 9. Notificar falha (opcional — requer SLACK_WEBHOOK secret) ────────
+      - name: Notificar falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Auto] JDA Pipeline falhou — ${new Date().toISOString().split('T')[0]}`,
+              body: `O pipeline JDA falhou na run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).\n\nVerificar logs nos artefactos.`,
+              labels: ['bug', 'pipeline']
+            })

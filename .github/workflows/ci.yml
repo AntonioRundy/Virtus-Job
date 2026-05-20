@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Build Next.js ────────────────────────────────────────────────────────────
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependências (root workspace)
+        run: cd ../.. && npm ci
+
+      - name: Build Next.js
+        env:
+          NEXT_PUBLIC_API_URL: https://virtus-api.onrender.com
+          NEXT_PUBLIC_APP_NAME: Virtus Job
+          NEXT_PUBLIC_APP_URL: https://virtusjob.vercel.app
+        run: npm run build
+
+      - name: TypeCheck
+        run: npx tsc --noEmit
+
+  # ── Lint Python ──────────────────────────────────────────────────────────────
+  api-lint:
+    name: API Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar ruff
+        run: pip install ruff==0.8.4
+
+      - name: Lint API
+        run: ruff check apps/api/app/ scrapers/
+
+  # ── Testes API ───────────────────────────────────────────────────────────────
+  api-test:
+    name: API Tests
+    runs-on: ubuntu-latest
+    needs: api-lint
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: virtus
+          POSTGRES_PASSWORD: virtus_test
+          POSTGRES_DB: virtus_job_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r apps/api/requirements.txt
+
+      - name: Correr testes
+        env:
+          DATABASE_URL: postgresql+asyncpg://virtus:virtus_test@localhost:5432/virtus_job_test
+          SECRET_KEY: test-secret-key-for-ci-only-32chars
+          ANTHROPIC_API_KEY: ""
+        working-directory: apps/api
+        run: pytest tests/ -v --tb=short
