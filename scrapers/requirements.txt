@@ -27,6 +27,9 @@ loguru==0.7.2
 typer==0.15.1
 rich==13.9.4
 
+# ─── Image Processing ───────────────────────────────────
+Pillow==11.2.1
+
 # ─── Utilities ──────────────────────────────────────────
 python-dotenv==1.0.1
 python-slugify==8.0.4
