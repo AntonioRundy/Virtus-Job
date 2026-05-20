@@ -1,0 +1,87 @@
+## Render Blueprint — Virtus Job API
+## Docs: https://render.com/docs/blueprint-spec
+##
+## Como usar:
+##   1. render.com → New → Blueprint → ligar AntonioRundy/Virtus-Job
+##   2. Render cria automaticamente: virtus-api + virtus-db (PostgreSQL)
+##   3. Adicionar manualmente os secrets marcados com sync: false
+##      Settings → Environment → Add Env Var
+
+services:
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  - type: web
+    name: virtus-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    plan: free           # starter gratuito — upgrade quando necessário
+    region: frankfurt    # mais próximo de Angola
+    healthCheckPath: /health
+    autoDeploy: true     # deploy automático a cada push para main
+
+    # Executar migrações antes de aceitar tráfego
+    preDeployCommand: alembic upgrade head
+
+    envVars:
+      # Base de dados — ligada automaticamente ao virtus-db abaixo
+      - key: DATABASE_URL
+        fromDatabase:
+          name: virtus-db
+          property: connectionString
+
+      # Segurança — gerada automaticamente pelo Render
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+
+      # Aplicação
+      - key: ENVIRONMENT
+        value: production
+      - key: PROJECT_NAME
+        value: Virtus Job
+      - key: API_HOST
+        value: "0.0.0.0"
+      - key: API_PORT
+        value: "8000"
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: DB_ECHO
+        value: "false"
+
+      # CORS — actualizar com o URL real do Vercel após deploy
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://web-delta-fawn-62.vercel.app","https://virtus-job.vercel.app","http://localhost:3000"]'
+
+      # Redis — desactivado para início (sem custo); activar quando necessário
+      - key: REDIS_URL
+        value: redis://localhost:6379/0
+
+      # ── Secrets — adicionar manualmente no dashboard Render ──────────────────
+      # Settings → Environment → Add Env Var
+
+      - key: ANTHROPIC_API_KEY
+        sync: false   # ← adicionar manualmente: sk-ant-api03-...
+
+      - key: JDA_EMAIL
+        sync: false   # ← adicionar manualmente: rundymarques13@gmail.com
+
+      - key: JDA_PASSWORD
+        sync: false   # ← adicionar manualmente: password do JDA
+
+      # Frontend URLs
+      - key: NEXT_PUBLIC_API_URL
+        value: https://virtus-api.onrender.com
+
+  # ── PostgreSQL Database ─────────────────────────────────────────────────────
+databases:
+  - name: virtus-db
+    plan: free           # 256MB RAM, 1GB storage, expira após 90 dias sem actividade
+    databaseName: virtus_job
+    user: virtus
+    region: frankfurt
