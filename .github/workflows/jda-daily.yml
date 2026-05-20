@@ -98,16 +98,17 @@ jobs:
         run: python -m scrapers.health_check
         continue-on-error: true
 
-      # ── 8. Guardar log como artefacto ──────────────────────────────────────
-      - name: Upload logs
+      # ── 8. Guardar logs e páginas capturadas como artefactos ──────────────
+      - name: Upload logs e páginas
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jda-logs-${{ github.run_number }}
+          name: jda-debug-${{ github.run_number }}
           path: |
             logs/jda_daily_*.log
             logs/jda_daily_runs.json
-          retention-days: 14
+            scrapers/output/jda_daily_pages/**/*.png
+          retention-days: 3
 
       # ── 9. Notificar falha (opcional — requer SLACK_WEBHOOK secret) ────────
       - name: Notificar falha
