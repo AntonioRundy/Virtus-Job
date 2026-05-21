@@ -154,14 +154,34 @@ async def open_pressreader(context) -> tuple:
         return None, None
     logger.info("Login OK — {}", post_login_url)
 
+    # ── Dispensar overlays/modais antes de clicar LER O JORNAL ───────────
+    # A página de assinaturas pode ter popups publicitários (CDK overlay)
+    for attempt in range(4):
+        overlay = await page.query_selector(".cdk-overlay-backdrop, .cdk-overlay-container img")
+        if not overlay:
+            break
+        logger.debug("Overlay detectado na página de assinaturas (tentativa {}) — a fechar...", attempt + 1)
+        # Tentar fechar: Escape, depois clicar fora, depois clicar no X
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(1.0)
+        close_btn = await page.query_selector(
+            "button[mat-dialog-close], button[aria-label='Close'], "
+            "button[aria-label='Fechar'], .mat-dialog-close, "
+            "[mat-dialog-close], button:has-text('×'), button:has-text('✕')"
+        )
+        if close_btn:
+            await close_btn.click(force=True)
+            await asyncio.sleep(0.8)
+
     # ── LER O JORNAL ───────────────────────────────────────────────────────
     ler = await page.query_selector("button:has-text('LER O JORNAL')")
     if not ler:
         logger.error("Botão LER O JORNAL não encontrado")
         return None, None
 
+    # Usar force=True para ignorar intercepções de overlay residuais
     async with context.expect_page(timeout=15000) as np_info:
-        await ler.click()
+        await ler.click(force=True)
     pr = await np_info.value
     await pr.wait_for_load_state("domcontentloaded", timeout=20000)
     await asyncio.sleep(WAIT_AFTER_LOAD)
