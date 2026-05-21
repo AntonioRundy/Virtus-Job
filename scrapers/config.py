@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,16 @@ class ScraperSettings(BaseSettings):
 
     # ─── Database ───────────────────────────────────────
     DATABASE_URL: str  # Obrigatório — definir em .env (sem default para evitar credenciais hardcoded)
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        # Render fornece postgres:// — SQLAlchemy async precisa de postgresql+asyncpg://
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://") and "+asyncpg" not in v:
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
     # ─── AI ─────────────────────────────────────────────
     ANTHROPIC_API_KEY: str = ""
